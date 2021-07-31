@@ -1,5 +1,5 @@
 import asyncio
-from pyppeteer import launch
+import pyppeteer
 import tweepy
 import os
 import time
@@ -80,6 +80,9 @@ def run(api):
         time.sleep(15)
 
 
+
+
+pyppeteer.chromium_downloader.download_chromium()
 
 auth = tweepy.OAuthHandler(os.environ['SCREENSHOT_CONSUMER_KEY'], os.environ['SCREENSHOT_CONSUMER_VALUE'])
 auth.set_access_token(os.environ['SCREENSHOT_ACCESS_TOKEN_KEY'], os.environ['SCREENSHOT_ACCESS_TOKEN_VALUE'])
