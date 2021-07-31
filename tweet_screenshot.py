@@ -96,7 +96,10 @@ id = 1421511310051840003
 file = str(id) + '.png'
 #run(api)
 while True:
+    print('start screenshot')
     asyncio.get_event_loop().run_until_complete(screenshot_tweet(api, id, file))
     if os.path.exists(file):
+        print('removing file')
         os.remove(file)
+    print('sleeping')
     time.sleep(15)
