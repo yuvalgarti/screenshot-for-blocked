@@ -67,10 +67,10 @@ def run(api):
     last_mention = 1
     with open('last_mention.txt', 'r') as last_mention_file:
         last_mention = int(last_mention_file.read())
+    max_mention_id = last_mention
     while True:
-        print('getting mentions since ' + str(last_mention))
-        mentions = api.mentions_timeline(count=1, since_id=last_mention)
-        max_mention_id = 0
+        print('getting mentions since ' + str(max_mention_id))
+        mentions = api.mentions_timeline(count=1, since_id=max_mention_id)
         for mention in mentions:
             last_mention = mention.id
             if last_mention > max_mention_id:
