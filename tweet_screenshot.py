@@ -12,7 +12,7 @@ async def screenshot_tweet(api, tweet_id, path_to_image):
     tweet_url = os.environ['TWITTER_STATUS_URL'].format(tweet.user.screen_name, tweet.id_str)
     result = api.get_oembed(tweet_url)
     tweet_html = result['html'].strip()
-    browser = await pyppeteer.launch()
+    browser = await pyppeteer.launch(args=['--no-sandbox'])
     page = await browser.newPage()
     await page.setContent(tweet_html)
     await page.waitForSelector('iframe', {'visible': True})
