@@ -70,13 +70,16 @@ def run(api):
     while True:
         print('getting mentions since ' + str(last_mention))
         mentions = api.mentions_timeline(count=1, since_id=last_mention)
+        max_mention_id = 0
         for mention in mentions:
             last_mention = mention.id
-            print('writing ' + mention.id_str + ' to last_mention_file.txt')
-            with open('last_mention.txt', 'w') as last_mention_file:
-                last_mention_file.write(str(last_mention))
+            if last_mention > max_mention_id:
+                max_mention_id = last_mention
             print('Mention by: @' + mention.user.screen_name)
             asyncio.get_event_loop().run_until_complete(reply_to_mention_with_screenshot(api, mention, mention.id_str + '.png'))
+        print('writing ' + str(max_mention_id) + ' to last_mention_file.txt')
+        with open('last_mention.txt', 'w') as last_mention_file:
+            last_mention_file.write(str(max_mention_id))
         time.sleep(15)
 
 
@@ -89,4 +92,11 @@ auth.set_access_token(os.environ['SCREENSHOT_ACCESS_TOKEN_KEY'], os.environ['SCR
 
 api = tweepy.API(auth, wait_on_rate_limit=True)
 
-run(api)
+id = 1421511310051840003
+file = str(id) + '.png'
+#run(api)
+while True:
+    asyncio.get_event_loop().run_until_complete(screenshot_tweet(api, id, file))
+    if os.path.exists(file):
+        os.remove(file)
+    time.sleep(15)
