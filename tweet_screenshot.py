@@ -29,7 +29,8 @@ async def reply_to_mention_with_screenshot(api, mention, tweet_to_screenshot):
     path_to_file = tweet_to_screenshot.id_str + '.png'
     await screenshot_tweet(api, tweet_to_screenshot.id, path_to_file)
     media = api.media_upload(path_to_file)
-    api.update_status(status='@' + mention.user.screen_name, in_reply_to_status_id=mention.id, media_ids=[media.media_id])
+    api.update_status(status='@' + mention.user.screen_name, in_reply_to_status_id=mention.id,
+                      media_ids=[media.media_id])
     print('path_to_file: {}, status: @{}, in_reply_to_status_id: {}'.format(path_to_file, mention.user.screen_name,
                                                                             mention.id))
     if os.path.exists(path_to_file):
@@ -43,9 +44,8 @@ async def blocked_retweet(api, mention):
             print('This is a retweet')
             blocked_tweet = api.get_status(viewed_tweet.quoted_status.id)
             await reply_to_mention_with_screenshot(api, mention, blocked_tweet)
-        else:
-            print('This is a comment')
-            await blocked_comment(api, mention)
+            return True
+    return False
 
 
 async def blocked_comment(api, mention):
@@ -54,7 +54,15 @@ async def blocked_comment(api, mention):
         if viewed_tweet.in_reply_to_status_id:
             blocked_tweet = api.get_status(viewed_tweet.in_reply_to_status_id)
             await reply_to_mention_with_screenshot(api, mention, blocked_tweet)
-        else:
+            return True
+    return False
+
+
+async def tweet_reaction(api, mention):
+    retweet = await blocked_retweet(api, mention)
+    if not retweet:
+        comment = await blocked_comment(api, mention)
+        if not comment:
             msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
             print(msg)
             api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
