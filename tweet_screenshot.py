@@ -54,7 +54,7 @@ async def blocked_comment(api, mention):
             blocked_tweet = api.get_status(viewed_tweet.in_reply_to_status_id)
             await reply_to_mention_with_screenshot(api, mention, blocked_tweet)
         else:
-            msg = 'לצערי אין תגובה ואין ריטוויט  (או שהמשתמש נעול)'
+            msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
             print(msg)
             api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
 
