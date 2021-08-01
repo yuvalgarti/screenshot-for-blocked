@@ -56,6 +56,7 @@ async def blocked_comment(api, mention):
         else:
             msg = 'לצערי אין תגובה ואין ריטוויט  (או שהמשתמש נעול)'
             print(msg)
+            api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
 
 
 def run(api, db):
