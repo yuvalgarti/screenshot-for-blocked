@@ -52,6 +52,7 @@ async def blocked_comment(api, mention):
     if mention.in_reply_to_status_id:
         viewed_tweet = api.get_status(mention.in_reply_to_status_id)
         if viewed_tweet.in_reply_to_status_id:
+            print('This is a comment')
             blocked_tweet = api.get_status(viewed_tweet.in_reply_to_status_id)
             await reply_to_mention_with_screenshot(api, mention, blocked_tweet)
             return True
