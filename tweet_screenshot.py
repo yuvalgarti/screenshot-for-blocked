@@ -80,7 +80,7 @@ def run(api, db):
                 max_mention_id = last_mention
             print('Mention by: @' + mention.user.screen_name)
             if mention.user.id != api.me().id:
-                asyncio.get_event_loop().run_until_complete(blocked_retweet(api, mention))
+                asyncio.get_event_loop().run_until_complete(tweet_reaction(api, mention))
         print('writing ' + str(max_mention_id) + ' to DB')
         db.child("last_mention_id").set(str(max_mention_id))
         time.sleep(15)
