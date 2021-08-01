@@ -25,16 +25,31 @@ async def screenshot_tweet(api, tweet_id, path_to_image):
     await browser.close()
 
 
-async def reply_to_mention_with_screenshot(api, mention, tweet_to_screenshot):
+async def reply_to_mention_with_screenshot(api, mention, tweet_to_screenshot, add_to_status=''):
     path_to_file = tweet_to_screenshot.id_str + '.png'
     await screenshot_tweet(api, tweet_to_screenshot.id, path_to_file)
     media = api.media_upload(path_to_file)
-    api.update_status(status='@' + mention.user.screen_name, in_reply_to_status_id=mention.id,
+    status = '@' + mention.user.screen_name + ' ' + add_to_status
+    api.update_status(status=status, in_reply_to_status_id=mention.id,
                       media_ids=[media.media_id])
-    print('path_to_file: {}, status: @{}, in_reply_to_status_id: {}'.format(path_to_file, mention.user.screen_name,
-                                                                            mention.id))
+    print('path_to_file: {}, status: {}, in_reply_to_status_id: {}'.format(path_to_file, status,
+                                                                           mention.id))
     if os.path.exists(path_to_file):
         os.remove(path_to_file)
+
+
+def get_all_links_from_tweet(tweet):
+    links = ''
+    if 'urls' in tweet.entities:
+        for url in tweet.entities['urls']:
+            links += url['url'] + '\n'
+    return links
+
+
+async def reply_blocked_tweet(api, mention, tweet_id):
+    blocked_tweet = api.get_status(tweet_id)
+    links = get_all_links_from_tweet(blocked_tweet)
+    await reply_to_mention_with_screenshot(api, mention, blocked_tweet, links)
 
 
 async def blocked_retweet(api, mention):
@@ -42,8 +57,7 @@ async def blocked_retweet(api, mention):
         viewed_tweet = api.get_status(mention.in_reply_to_status_id)
         if hasattr(viewed_tweet, 'quoted_status'):
             print('This is a retweet')
-            blocked_tweet = api.get_status(viewed_tweet.quoted_status.id)
-            await reply_to_mention_with_screenshot(api, mention, blocked_tweet)
+            await reply_blocked_tweet(api, mention, viewed_tweet.quoted_status.id)
             return True
     return False
 
@@ -53,8 +67,7 @@ async def blocked_comment(api, mention):
         viewed_tweet = api.get_status(mention.in_reply_to_status_id)
         if viewed_tweet.in_reply_to_status_id:
             print('This is a comment')
-            blocked_tweet = api.get_status(viewed_tweet.in_reply_to_status_id)
-            await reply_to_mention_with_screenshot(api, mention, blocked_tweet)
+            await reply_blocked_tweet(api, mention, viewed_tweet.in_reply_to_status_id)
             return True
     return False
 
@@ -88,7 +101,6 @@ def run(api, db):
             time.sleep(15)
         except tweepy.TweepError as exp:
             print('Error! ' + str(exp))
-
 
 
 pyppeteer.chromium_downloader.download_chromium()
