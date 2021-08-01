@@ -45,7 +45,6 @@ async def blocked_retweet(api, mention):
         else:
             print('This is a comment')
             await blocked_comment(api, mention)
-            api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
 
 
 async def blocked_comment(api, mention):
@@ -87,7 +86,6 @@ firebase_config = {
     "databaseURL": os.environ['FIREBASE_DB_URL'],
     "storageBucket": os.environ['FIREBASE_STORAGE_BUCKET']
 }
-
 
 tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
 firebase = pyrebase.initialize_app(firebase_config)
