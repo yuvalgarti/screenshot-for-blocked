@@ -29,7 +29,8 @@ async def reply_to_mention_with_screenshot(api, mention, tweet_to_screenshot):
     path_to_file = tweet_to_screenshot.id_str + '.png'
     await screenshot_tweet(api, tweet_to_screenshot.id, path_to_file)
     media = api.media_upload(path_to_file)
-    api.update_status(status='@' + mention.user.screen_name, in_reply_to_status_id=mention.id, media_ids=[media.media_id])
+    api.update_status(status='@' + mention.user.screen_name, in_reply_to_status_id=mention.id,
+                      media_ids=[media.media_id])
     print('path_to_file: {}, status: @{}, in_reply_to_status_id: {}'.format(path_to_file, mention.user.screen_name,
                                                                             mention.id))
     if os.path.exists(path_to_file):
@@ -43,18 +44,26 @@ async def blocked_retweet(api, mention):
             print('This is a retweet')
             blocked_tweet = api.get_status(viewed_tweet.quoted_status.id)
             await reply_to_mention_with_screenshot(api, mention, blocked_tweet)
-        else:
-            print('This is a comment')
-            await blocked_comment(api, mention)
+            return True
+    return False
 
 
 async def blocked_comment(api, mention):
     if mention.in_reply_to_status_id:
         viewed_tweet = api.get_status(mention.in_reply_to_status_id)
         if viewed_tweet.in_reply_to_status_id:
+            print('This is a comment')
             blocked_tweet = api.get_status(viewed_tweet.in_reply_to_status_id)
             await reply_to_mention_with_screenshot(api, mention, blocked_tweet)
-        else:
+            return True
+    return False
+
+
+async def tweet_reaction(api, mention):
+    retweet = await blocked_retweet(api, mention)
+    if not retweet:
+        comment = await blocked_comment(api, mention)
+        if not comment:
             msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
             print(msg)
             api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
@@ -73,7 +82,7 @@ def run(api, db):
                     max_mention_id = last_mention
                 print('Mention by: @' + mention.user.screen_name)
                 if mention.user.id != api.me().id:
-                    asyncio.get_event_loop().run_until_complete(blocked_retweet(api, mention))
+                    asyncio.get_event_loop().run_until_complete(tweet_reaction(api, mention))
             print('writing ' + str(max_mention_id) + ' to DB')
             db.child("last_mention_id").set(str(max_mention_id))
             time.sleep(15)
