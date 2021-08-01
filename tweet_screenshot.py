@@ -28,7 +28,8 @@ async def screenshot_tweet(api, tweet_id, path_to_image):
 async def reply_to_mention_with_screenshot(api, mention, tweet_to_screenshot):
     path_to_file = tweet_to_screenshot.id_str + '.png'
     await screenshot_tweet(api, tweet_to_screenshot.id, path_to_file)
-    api.update_with_media(path_to_file, status='@' + mention.user.screen_name, in_reply_to_status_id=mention.id)
+    media = api.media_upload(path_to_file)
+    api.update_status(status='@' + mention.user.screen_name, in_reply_to_status_id=mention.id, media_ids=[media.media_id])
     print('path_to_file: {}, status: @{}, in_reply_to_status_id: {}'.format(path_to_file, mention.user.screen_name,
                                                                             mention.id))
     if os.path.exists(path_to_file):
