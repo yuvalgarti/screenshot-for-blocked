@@ -9,6 +9,7 @@ import pyrebase
 
 class ApiError(Enum):
     RESTRICTED_TWEET = 179
+    RESTRICTED_COMMENTS = 433
 
 
 async def screenshot_tweet(api, tweet_id, path_to_image):
@@ -83,12 +84,15 @@ async def tweet_reaction(api, mention):
                 print(msg)
                 api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
     except tweepy.TweepError as err:
-        if err.api_code == ApiError.RESTRICTED_TWEET.value:
-            msg = 'אין לי אפשרות לצפות בציוצים של המשתמש הזה (אולי הוא נעול?)'
-            print(msg)
-            api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
-        else:
-            print('Error! ' + str(err))
+        try:
+            if err.api_code == ApiError.RESTRICTED_TWEET.value:
+                msg = 'אין לי אפשרות לצפות בציוצים של המשתמש הזה (אולי הוא נעול?)'
+                print(msg)
+                api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
+            else:
+                print('Error! ' + str(err))
+        except tweepy.TweepError as another_err:
+            print('Error! ' + str(another_err))
 
 
 def run(api, db):
