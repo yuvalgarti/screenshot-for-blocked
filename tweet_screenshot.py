@@ -1,4 +1,5 @@
 import asyncio
+from enum import Enum
 import pyppeteer
 import tweepy
 import os
@@ -6,8 +7,8 @@ import time
 import pyrebase
 
 
-class NoRetweetException(Exception):
-    pass
+class ApiError(Enum):
+    RESTRICTED_TWEET = 179
 
 
 async def screenshot_tweet(api, tweet_id, path_to_image):
@@ -73,13 +74,21 @@ async def blocked_comment(api, mention):
 
 
 async def tweet_reaction(api, mention):
-    retweet = await blocked_retweet(api, mention)
-    if not retweet:
-        comment = await blocked_comment(api, mention)
-        if not comment:
-            msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
+    try:
+        retweet = await blocked_retweet(api, mention)
+        if not retweet:
+            comment = await blocked_comment(api, mention)
+            if not comment:
+                msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
+                print(msg)
+                api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
+    except tweepy.TweepError as err:
+        if err.api_code == ApiError.RESTRICTED_TWEET.value:
+            msg = 'אין לי אפשרות לצפות בציוצים של המשתמש זה (אולי הוא נעול?)'
             print(msg)
             api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
+        else:
+            print('Error! ' + str(err))
 
 
 def run(api, db):
