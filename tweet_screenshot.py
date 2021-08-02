@@ -5,6 +5,7 @@ import tweepy
 import os
 import time
 import pyrebase
+import requests
 
 
 class ApiError(Enum):
@@ -27,17 +28,35 @@ async def screenshot_tweet(api, tweet_id, path_to_image):
     await browser.close()
 
 
+def save_video_from_tweet(api, tweet_id, path_to_video):
+    extended = api.get_status(tweet_id, tweet_mode="extended").extended_entities
+    rv = []
+    if "media" in extended:
+        for x in extended["media"]:
+            if x["type"] in ["video", "animated_gif"]:
+                variants = x["video_info"]["variants"]
+                variants.sort(key=lambda x: x.get("bitrate", 0))
+                url = variants[-1]["url"].rsplit("?tag")[0]
+                rv.append(url)
+    if len(rv) > 0:
+        response = requests.get(rv[0])
+        open(path_to_video, 'wb').write(response.content)
+        return True
+    return False
+
+
 async def reply_to_mention_with_screenshot(api, mention, tweet_to_screenshot, add_to_status=''):
     path_to_file = tweet_to_screenshot.id_str + '.png'
     await screenshot_tweet(api, tweet_to_screenshot.id, path_to_file)
     media = api.media_upload(path_to_file)
     status = '@' + mention.user.screen_name + ' ' + add_to_status
-    api.update_status(status=status, in_reply_to_status_id=mention.id,
-                      media_ids=[media.media_id])
+    new_tweet = api.update_status(status=status, in_reply_to_status_id=mention.id,
+                                  media_ids=[media.media_id])
     print('path_to_file: {}, status: {}, in_reply_to_status_id: {}'.format(path_to_file, status,
                                                                            mention.id))
     if os.path.exists(path_to_file):
         os.remove(path_to_file)
+    return new_tweet
 
 
 def get_all_links_from_tweet(tweet):
@@ -51,7 +70,15 @@ def get_all_links_from_tweet(tweet):
 async def reply_blocked_tweet(api, mention, tweet_id):
     blocked_tweet = api.get_status(tweet_id)
     links = get_all_links_from_tweet(blocked_tweet)
-    await reply_to_mention_with_screenshot(api, mention, blocked_tweet, links)
+    reply = await reply_to_mention_with_screenshot(api, mention, blocked_tweet, links)
+    path_to_video = str(tweet_id) + '.mp4'
+    if save_video_from_tweet(api, tweet_id, path_to_video):
+        status = '@' + api.me().screen_name + ' @' + mention.user.screen_name
+        media = api.media_upload(path_to_video)
+        print('path_to_video: {}, status: {}'.format(path_to_video, status))
+        api.update_status(status=status, in_reply_to_status_id=reply.id, media_ids=[media.media_id])
+        if os.path.exists(path_to_video):
+            os.remove(path_to_video)
 
 
 async def blocked_retweet(api, mention):
