@@ -61,7 +61,7 @@ class ScreenshotForBlocked:
             viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
             if hasattr(viewed_tweet, 'quoted_status'):
                 print('This is a retweet')
-                await self.reply_blocked_tweet(self.api, mention, viewed_tweet.quoted_status.id)
+                await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status.id)
                 return True
         return False
 
