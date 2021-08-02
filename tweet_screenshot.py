@@ -84,7 +84,7 @@ async def tweet_reaction(api, mention):
                 api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
     except tweepy.TweepError as err:
         if err.api_code == ApiError.RESTRICTED_TWEET.value:
-            msg = 'אין לי אפשרות לצפות בציוצים של המשתמש זה (אולי הוא נעול?)'
+            msg = 'אין לי אפשרות לצפות בציוצים של המשתמש הזה (אולי הוא נעול?)'
             print(msg)
             api.update_status(status='@' + mention.user.screen_name + ' ' + msg, in_reply_to_status_id=mention.id)
         else:
