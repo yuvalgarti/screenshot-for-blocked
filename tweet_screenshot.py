@@ -107,10 +107,12 @@ class ScreenshotForBlocked:
         pyppeteer.chromium_downloader.download_chromium()
         last_mention = int(self.db.child("last_mention_id").get().val())
         max_mention_id = last_mention
+        mentions_per_request = os.environ['MENTIONS_PER_REQUEST']
+        print('mentions per request: {}'.format(mentions_per_request))
         while True:
             try:
                 print('getting mentions since ' + str(max_mention_id))
-                mentions = self.api.mentions_timeline(count=1, since_id=max_mention_id)
+                mentions = self.api.mentions_timeline(count=mentions_per_request, since_id=max_mention_id)
                 for mention in mentions:
                     last_mention = mention.id
                     if last_mention > max_mention_id:
@@ -118,6 +120,8 @@ class ScreenshotForBlocked:
                     print('Mention by: @' + mention.user.screen_name)
                     if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention):
                         asyncio.get_event_loop().run_until_complete(self.tweet_reaction(mention))
+                    else:
+                        print('should not reply - mention by me or no mention inside text')
                 print('writing ' + str(max_mention_id) + ' to DB')
                 self.db.child("last_mention_id").set(str(max_mention_id))
                 time.sleep(15)
