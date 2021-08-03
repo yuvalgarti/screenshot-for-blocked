@@ -25,6 +25,13 @@ class ScreenshotForBlocked:
         self.api = api
         self.db = db
 
+    def is_mention_inside_text(self, mention):
+        extended_mention = self.api.get_status(mention.id, tweet_mode="extended")
+        blocked_screen = '@' + self.api.me().screen_name
+        start_text = int(extended_mention.display_text_range[0])
+        end_text = int(extended_mention.display_text_range[1])
+        return blocked_screen in extended_mention.full_text[start_text:end_text]
+
     async def screenshot_tweet(self, tweet_id, path_to_image):
         tweet = self.api.get_status(tweet_id)
         tweet_url = os.environ['TWITTER_STATUS_URL'].format(tweet.user.screen_name, tweet.id_str)
@@ -109,7 +116,7 @@ class ScreenshotForBlocked:
                     if last_mention > max_mention_id:
                         max_mention_id = last_mention
                     print('Mention by: @' + mention.user.screen_name)
-                    if mention.user.id != self.api.me().id:
+                    if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention):
                         asyncio.get_event_loop().run_until_complete(self.tweet_reaction(mention))
                 print('writing ' + str(max_mention_id) + ' to DB')
                 self.db.child("last_mention_id").set(str(max_mention_id))
