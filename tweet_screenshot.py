@@ -26,7 +26,7 @@ class ScreenshotForBlocked:
         self.db = db
 
     def is_mention_inside_text(self, mention):
-        extended_mention = self.api.get_status(mention.id, tweet_mode="extended")
+        extended_mention = self.api.get_status(mention.id, tweet_mode='extended')
         blocked_screen = '@' + self.api.me().screen_name
         start_text = int(extended_mention.display_text_range[0])
         end_text = int(extended_mention.display_text_range[1])
@@ -105,7 +105,7 @@ class ScreenshotForBlocked:
 
     def run(self):
         pyppeteer.chromium_downloader.download_chromium()
-        last_mention = int(self.db.child("last_mention_id").get().val())
+        last_mention = int(self.db.child('last_mention_id').get().val())
         max_mention_id = last_mention
         mentions_per_request = os.environ['MENTIONS_PER_REQUEST']
         print('mentions per request: {}'.format(mentions_per_request))
@@ -123,24 +123,25 @@ class ScreenshotForBlocked:
                     else:
                         print('should not reply - mention by me or no mention inside text')
                 print('writing ' + str(max_mention_id) + ' to DB')
-                self.db.child("last_mention_id").set(str(max_mention_id))
+                self.db.child('last_mention_id').set(str(max_mention_id))
                 time.sleep(15)
             except tweepy.TweepError as exp:
                 print('Error! ' + str(exp))
 
 
-auth = tweepy.OAuthHandler(os.environ['SCREENSHOT_CONSUMER_KEY'], os.environ['SCREENSHOT_CONSUMER_VALUE'])
-auth.set_access_token(os.environ['SCREENSHOT_ACCESS_TOKEN_KEY'], os.environ['SCREENSHOT_ACCESS_TOKEN_VALUE'])
+if __name__ == '__main__':
+    auth = tweepy.OAuthHandler(os.environ['SCREENSHOT_CONSUMER_KEY'], os.environ['SCREENSHOT_CONSUMER_VALUE'])
+    auth.set_access_token(os.environ['SCREENSHOT_ACCESS_TOKEN_KEY'], os.environ['SCREENSHOT_ACCESS_TOKEN_VALUE'])
 
-firebase_config = {
-    "apiKey": os.environ['FIREBASE_API_KEY'],
-    "authDomain": os.environ['FIREBASE_AUTH_DOMAIN'],
-    "databaseURL": os.environ['FIREBASE_DB_URL'],
-    "storageBucket": os.environ['FIREBASE_STORAGE_BUCKET']
-}
+    firebase_config = {
+        'apiKey': os.environ['FIREBASE_API_KEY'],
+        'authDomain': os.environ['FIREBASE_AUTH_DOMAIN'],
+        'databaseURL': os.environ['FIREBASE_DB_URL'],
+        'storageBucket': os.environ['FIREBASE_STORAGE_BUCKET']
+    }
 
-tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
-firebase = pyrebase.initialize_app(firebase_config)
+    tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
+    firebase = pyrebase.initialize_app(firebase_config)
 
-bot = ScreenshotForBlocked(tweepy_api, firebase.database())
-bot.run()
+    bot = ScreenshotForBlocked(tweepy_api, firebase.database())
+    bot.run()
