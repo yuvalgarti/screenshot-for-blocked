@@ -129,7 +129,8 @@ class ScreenshotForBlocked:
                     if last_mention > max_mention_id:
                         max_mention_id = last_mention
                     print('Mention by: @' + mention.user.screen_name)
-                    if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention):
+                    if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention) and \
+                            mention.in_reply_to_status_id is not None:
                         asyncio.get_event_loop().run_until_complete(self.tweet_reaction(mention))
                     else:
                         print('should not reply - mention by me or no mention inside text')
