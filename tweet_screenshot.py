@@ -49,10 +49,10 @@ class ScreenshotForBlocked:
     async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
         await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
-        #media = self.api.media_upload(path_to_file)
+        media = self.api.media_upload(path_to_file)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
-        #self.api.update_status(status=status, in_reply_to_status_id=mention.id,
-        #                       media_ids=[media.media_id])
+        self.api.update_status(status=status, in_reply_to_status_id=mention.id,
+                               media_ids=[media.media_id])
         print('path_to_file: {}, status: {}, in_reply_to_status_id: {}'.format(path_to_file, status,
                                                                                mention.id))
         if os.path.exists(path_to_file):
@@ -94,15 +94,15 @@ class ScreenshotForBlocked:
                 if not comment:
                     msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
                     print(msg)
-                    #self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
-                    #                       in_reply_to_status_id=mention.id)
+                    self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
+                                           in_reply_to_status_id=mention.id)
         except tweepy.TweepError as err:
             try:
                 if err.api_code == ApiError.RESTRICTED_TWEET.value:
                     msg = 'אין לי אפשרות לצפות בציוצים של המשתמש הזה (אולי הוא נעול?)'
                     print(msg)
-                    #self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
-                    #                       in_reply_to_status_id=mention.id)
+                    self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
+                                           in_reply_to_status_id=mention.id)
                 else:
                     print('Error! ' + str(err))
             except tweepy.TweepError as another_err:
@@ -149,5 +149,4 @@ if __name__ == '__main__':
     firebase = pyrebase.initialize_app(firebase_config)
 
     bot = ScreenshotForBlocked(tweepy_api, firebase.database())
-    #bot.run()
-    asyncio.get_event_loop().run_until_complete(bot.tweet_reaction(tweepy_api.get_status(1407785452669648901)))
+    bot.run()
