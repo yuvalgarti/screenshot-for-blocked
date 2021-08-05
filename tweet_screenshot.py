@@ -34,8 +34,7 @@ class ScreenshotForBlocked:
         return blocked_screen in extended_mention.full_text[start_text:end_text]
 
     async def screenshot_tweet(self, tweet_id, path_to_image):
-        tweet = self.api.get_status(tweet_id)
-        tweet_url = os.environ['TWITTER_STATUS_URL'].format(tweet.user.screen_name, tweet.id_str)
+        tweet_url = os.environ['TWITTER_STATUS_URL'].format('AnyUser', tweet_id)
         result = self.api.get_oembed(tweet_url)
         tweet_html = result['html'].strip()
         browser = await pyppeteer.launch(args=['--no-sandbox'])
@@ -46,10 +45,11 @@ class ScreenshotForBlocked:
         tweet_frame = await page.querySelector('iframe')
         await tweet_frame.screenshot({'path': path_to_image})
         await browser.close()
+        print('finished screenshotting')
 
-    async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot, add_to_status=''):
-        path_to_file = tweet_to_screenshot.id_str + '.png'
-        await self.screenshot_tweet(tweet_to_screenshot.id, path_to_file)
+    async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
+        path_to_file = str(tweet_to_screenshot_id) + '.png'
+        await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
         media = self.api.media_upload(path_to_file)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
         self.api.update_status(status=status, in_reply_to_status_id=mention.id,
@@ -60,16 +60,20 @@ class ScreenshotForBlocked:
             os.remove(path_to_file)
 
     async def reply_blocked_tweet(self, mention, tweet_id):
-        blocked_tweet = self.api.get_status(tweet_id)
-        links = get_all_links_from_tweet(blocked_tweet)
-        await self.reply_to_mention_with_screenshot(mention, blocked_tweet, links)
+        links = ''
+        try:
+            blocked_tweet = self.api.get_status(tweet_id)
+            links = get_all_links_from_tweet(blocked_tweet)
+        except tweepy.TweepError as twe:
+            print('cannot get links - probably the user blocked me')
+        await self.reply_to_mention_with_screenshot(mention, tweet_id, links)
 
     async def blocked_retweet(self, mention):
         if mention.in_reply_to_status_id:
             viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
-            if hasattr(viewed_tweet, 'quoted_status'):
+            if viewed_tweet.is_quote_status:
                 print('This is a retweet')
-                await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status.id)
+                await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status_id)
                 return True
         return False
 
