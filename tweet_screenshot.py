@@ -8,7 +8,9 @@ import pyrebase
 
 
 class ApiError(Enum):
+    URL_DOESNT_EXIST = 34
     BLOCKED_TWEET = 136
+    NO_TWEET_WITH_ID = 144
     RESTRICTED_TWEET = 179
     RESTRICTED_COMMENTS = 433
 
@@ -98,18 +100,17 @@ class ScreenshotForBlocked:
                                            in_reply_to_status_id=mention.id)
         except tweepy.TweepError as err:
             try:
+                msg = str(err)
                 if err.api_code == ApiError.RESTRICTED_TWEET.value:
                     msg = 'אין לי אפשרות לצפות בציוצים של המשתמש הזה (אולי הוא נעול?)'
-                    print(msg)
-                    self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
-                                           in_reply_to_status_id=mention.id)
                 elif err.api_code == ApiError.BLOCKED_TWEET.value:
                     msg = 'המשתמש הזה חסם אותי 😰'
-                    print(msg)
+                elif err.api_code == ApiError.NO_TWEET_WITH_ID.value or err.api_code == ApiError.URL_DOESNT_EXIST.value:
+                    msg = 'לא הצלחתי למצוא את הציוץ (אולי הוא נמחק?)'
+                if msg != str(err):
                     self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
                                            in_reply_to_status_id=mention.id)
-                else:
-                    print('Error! ' + str(err))
+                print('Error! ' + msg)
             except tweepy.TweepError as another_err:
                 print('Error! ' + str(another_err))
 
