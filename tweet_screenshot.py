@@ -32,8 +32,8 @@ class ScreenshotForBlocked:
         end_text = int(extended_mention.display_text_range[1])
         return blocked_screen in extended_mention.full_text[start_text:end_text]
 
-    async def screenshot_tweet(self, tweet_id, screen_name, path_to_image):
-        tweet_url = os.environ['TWITTER_STATUS_URL'].format(screen_name, tweet_id)
+    async def screenshot_tweet(self, tweet_id, path_to_image):
+        tweet_url = os.environ['TWITTER_STATUS_URL'].format('AnyUser', tweet_id)
         result = self.api.get_oembed(tweet_url)
         tweet_html = result['html'].strip()
         browser = await pyppeteer.launch(args=['--no-sandbox'])
@@ -46,53 +46,45 @@ class ScreenshotForBlocked:
         await browser.close()
         print('finished screenshotting')
 
-    async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id,
-                                               tweet_to_screenshot_screen_name, add_to_status=''):
+    async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
-        await self.screenshot_tweet(tweet_to_screenshot_id, tweet_to_screenshot_screen_name, path_to_file)
-        media = self.api.media_upload(path_to_file)
+        await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
+        #media = self.api.media_upload(path_to_file)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
-        self.api.update_status(status=status, in_reply_to_status_id=mention.id,
-                               media_ids=[media.media_id])
+        #self.api.update_status(status=status, in_reply_to_status_id=mention.id,
+        #                       media_ids=[media.media_id])
         print('path_to_file: {}, status: {}, in_reply_to_status_id: {}'.format(path_to_file, status,
                                                                                mention.id))
         if os.path.exists(path_to_file):
             os.remove(path_to_file)
 
-    async def reply_blocked_tweet(self, mention, tweet_id, screen_name):
+    async def reply_blocked_tweet(self, mention, tweet_id):
         links = ''
         try:
             blocked_tweet = self.api.get_status(tweet_id)
             links = get_all_links_from_tweet(blocked_tweet)
         except tweepy.TweepError as twe:
-            pass
-        await self.reply_to_mention_with_screenshot(mention, tweet_id, screen_name, links)
+            print('cannot get links - the user blocked me')
+        await self.reply_to_mention_with_screenshot(mention, tweet_id, links)
 
     async def blocked_retweet(self, mention):
-        try:
-            if mention.in_reply_to_status_id:
-                viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
-                if hasattr(viewed_tweet, 'quoted_status'):
-                    print('This is a retweet')
-                    await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status.id,
-                                                   viewed_tweet.quoted_status.screen_name)
-                    return True
-            return False
-        except tweepy.TweepError as twe:
-            return False
+        if mention.in_reply_to_status_id:
+            viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
+            print(viewed_tweet)
+            if hasattr(viewed_tweet, 'quoted_status'):
+                print('This is a retweet')
+                await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status.id)
+                return True
+        return False
 
     async def blocked_comment(self, mention):
-        try:
-            if mention.in_reply_to_status_id:
-                viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
-                if viewed_tweet.in_reply_to_status_id:
-                    print('This is a comment')
-                    await self.reply_blocked_tweet(mention, viewed_tweet.in_reply_to_status_id,
-                                                   viewed_tweet.in_reply_to_screen_name)
-                    return True
-            return False
-        except tweepy.TweepError as twe:
-            return False
+        if mention.in_reply_to_status_id:
+            viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
+            if viewed_tweet.in_reply_to_status_id:
+                print('This is a comment')
+                await self.reply_blocked_tweet(mention, viewed_tweet.in_reply_to_status_id)
+                return True
+        return False
 
     async def tweet_reaction(self, mention):
         try:
@@ -102,15 +94,15 @@ class ScreenshotForBlocked:
                 if not comment:
                     msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
                     print(msg)
-                    self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
-                                           in_reply_to_status_id=mention.id)
+                    #self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
+                    #                       in_reply_to_status_id=mention.id)
         except tweepy.TweepError as err:
             try:
                 if err.api_code == ApiError.RESTRICTED_TWEET.value:
                     msg = 'אין לי אפשרות לצפות בציוצים של המשתמש הזה (אולי הוא נעול?)'
                     print(msg)
-                    self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
-                                           in_reply_to_status_id=mention.id)
+                    #self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
+                    #                       in_reply_to_status_id=mention.id)
                 else:
                     print('Error! ' + str(err))
             except tweepy.TweepError as another_err:
@@ -157,4 +149,5 @@ if __name__ == '__main__':
     firebase = pyrebase.initialize_app(firebase_config)
 
     bot = ScreenshotForBlocked(tweepy_api, firebase.database())
-    bot.run()
+    #bot.run()
+    asyncio.get_event_loop().run_until_complete(bot.tweet_reaction(tweepy_api.get_status(1407785452669648901)))
