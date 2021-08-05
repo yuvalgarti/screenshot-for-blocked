@@ -64,16 +64,15 @@ class ScreenshotForBlocked:
             blocked_tweet = self.api.get_status(tweet_id)
             links = get_all_links_from_tweet(blocked_tweet)
         except tweepy.TweepError as twe:
-            print('cannot get links - the user blocked me')
+            print('cannot get links - probably the user blocked me')
         await self.reply_to_mention_with_screenshot(mention, tweet_id, links)
 
     async def blocked_retweet(self, mention):
         if mention.in_reply_to_status_id:
             viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
-            print(viewed_tweet)
-            if hasattr(viewed_tweet, 'quoted_status'):
+            if viewed_tweet.is_quote_status:
                 print('This is a retweet')
-                await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status.id)
+                await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status_id)
                 return True
         return False
 
