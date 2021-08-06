@@ -60,7 +60,7 @@ class ScreenshotForBlocked:
         except tweepy.TweepError as twe:
             if twe.api_code == ApiError.RESTRICTED_COMMENTS.value:
                 text = 'נראה שאין לי הרשאות להגיב על הציוץ שביקשת, הנה הציוץ המבוקש'
-                print(text)
+                print('sending DM instead of replying')
                 self.api.send_direct_message(recipient_id=mention.user.id, text=text, attachment_type='media',
                                              attachment_media_id=media.media_id)
             else:
