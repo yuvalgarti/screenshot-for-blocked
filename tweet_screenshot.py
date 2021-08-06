@@ -54,12 +54,23 @@ class ScreenshotForBlocked:
         await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
         media = self.api.media_upload(path_to_file)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
-        self.api.update_status(status=status, in_reply_to_status_id=mention.id,
-                               media_ids=[media.media_id])
-        print('path_to_file: {}, status: {}, in_reply_to_status_id: {}'.format(path_to_file, status,
-                                                                               mention.id))
-        if os.path.exists(path_to_file):
-            os.remove(path_to_file)
+        try:
+            self.api.update_status(status=status, in_reply_to_status_id=mention.id,
+                                   media_ids=[media.media_id])
+        except tweepy.TweepError as twe:
+            if twe.api_code == ApiError.RESTRICTED_COMMENTS.value:
+                text = 'נראה שאין לי הרשאות להגיב על הציוץ שביקשת, הנה הציוץ המבוקש'
+                print('sending DM instead of replying')
+                self.api.send_direct_message(recipient_id=mention.user.id, text=text, attachment_type='media',
+                                             attachment_media_id=media.media_id)
+            else:
+                raise twe
+        else:
+            print('path_to_file: {}, status: {}, in_reply_to_status_id: {}'.format(path_to_file, status, mention.id))
+        finally:
+            if os.path.exists(path_to_file):
+                print('removing media file')
+                os.remove(path_to_file)
 
     async def reply_blocked_tweet(self, mention, tweet_id):
         links = ''
@@ -104,7 +115,7 @@ class ScreenshotForBlocked:
                 if err.api_code == ApiError.RESTRICTED_TWEET.value or err.response.status_code == 403:
                     msg = 'אין לי אפשרות לצפות בציוצים של המשתמש הזה (אולי הוא נעול?)'
                 elif err.api_code == ApiError.BLOCKED_TWEET.value:
-                    msg = 'המשתמש הזה חסם אותי 😰'
+                    msg = 'יש ציוץ בדרך שאין לי אפשרות לראות 😰'
                 elif err.api_code == ApiError.NO_TWEET_WITH_ID.value or err.api_code == ApiError.URL_DOESNT_EXIST.value:
                     msg = 'לא הצלחתי למצוא את הציוץ (אולי הוא נמחק?)'
                 if msg != str(err):
