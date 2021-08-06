@@ -165,4 +165,3 @@ if __name__ == '__main__':
 
     bot = ScreenshotForBlocked(tweepy_api, firebase.database())
     bot.run()
-
