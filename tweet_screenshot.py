@@ -115,7 +115,7 @@ class ScreenshotForBlocked:
                 if err.api_code == ApiError.RESTRICTED_TWEET.value:
                     msg = 'אין לי אפשרות לצפות בציוצים של המשתמש הזה (אולי הוא נעול?)'
                 elif err.api_code == ApiError.BLOCKED_TWEET.value:
-                    msg = 'המשתמש הזה חסם אותי 😰'
+                    msg = 'יש ציוץ בדרך שאין לי אפשרות לראות 😰'
                 elif err.api_code == ApiError.NO_TWEET_WITH_ID.value or err.api_code == ApiError.URL_DOESNT_EXIST.value:
                     msg = 'לא הצלחתי למצוא את הציוץ (אולי הוא נמחק?)'
                 if msg != str(err):
