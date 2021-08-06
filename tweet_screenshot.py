@@ -64,13 +64,12 @@ class ScreenshotForBlocked:
                 self.api.send_direct_message(recipient_id=mention.user.id, text=text, attachment_type='media',
                                              attachment_media_id=media.media_id)
             else:
-                if os.path.exists(path_to_file):
-                    os.remove(path_to_file)
                 raise twe
         else:
             print('path_to_file: {}, status: {}, in_reply_to_status_id: {}'.format(path_to_file, status, mention.id))
         finally:
             if os.path.exists(path_to_file):
+                print('removing media file')
                 os.remove(path_to_file)
 
     async def reply_blocked_tweet(self, mention, tweet_id):
