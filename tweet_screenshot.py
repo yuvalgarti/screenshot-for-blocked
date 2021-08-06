@@ -67,7 +67,7 @@ class ScreenshotForBlocked:
             blocked_tweet = self.api.get_status(tweet_id)
             links = get_all_links_from_tweet(blocked_tweet)
         except tweepy.TweepError as twe:
-            print('cannot get links - probably the user blocked me')
+            print('cannot get links - the user blocked me or they are locked')
         await self.reply_to_mention_with_screenshot(mention, tweet_id, links)
 
     async def blocked_retweet(self, mention):
@@ -101,7 +101,7 @@ class ScreenshotForBlocked:
         except tweepy.TweepError as err:
             try:
                 msg = str(err)
-                if err.api_code == ApiError.RESTRICTED_TWEET.value:
+                if err.api_code == ApiError.RESTRICTED_TWEET.value or err.response.status_code == 403:
                     msg = 'אין לי אפשרות לצפות בציוצים של המשתמש הזה (אולי הוא נעול?)'
                 elif err.api_code == ApiError.BLOCKED_TWEET.value:
                     msg = 'המשתמש הזה חסם אותי 😰'
