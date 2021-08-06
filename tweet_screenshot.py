@@ -53,7 +53,6 @@ class ScreenshotForBlocked:
         path_to_file = str(tweet_to_screenshot_id) + '.png'
         await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
         media = self.api.media_upload(path_to_file)
-        print(media)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
         try:
             self.api.update_status(status=status, in_reply_to_status_id=mention.id,
@@ -61,13 +60,12 @@ class ScreenshotForBlocked:
         except tweepy.TweepError as twe:
             if twe.api_code == ApiError.RESTRICTED_COMMENTS.value:
                 text = 'נראה שאין לי הרשאות להגיב על הציוץ שביקשת, הנה הציוץ המבוקש'
-                print('text: {}, media_id: {}'.format(text, media.media_id))
-                print(self.api.send_direct_message(recipient_id=mention.user.id, text=text, attachment_media_id=media.media_id))
-            if os.path.exists(path_to_file):
-                os.remove(path_to_file)
-            raise twe
+                print(text)
+                self.api.send_direct_message(recipient_id=mention.user.id, text=text, attachment_type='media',
+                                             attachment_media_id=media.media_id)
         else:
             print('path_to_file: {}, status: {}, in_reply_to_status_id: {}'.format(path_to_file, status, mention.id))
+        finally:
             if os.path.exists(path_to_file):
                 os.remove(path_to_file)
 
@@ -166,6 +164,5 @@ if __name__ == '__main__':
     firebase = pyrebase.initialize_app(firebase_config)
 
     bot = ScreenshotForBlocked(tweepy_api, firebase.database())
-    #bot.run()
-    #asyncio.get_event_loop().run_until_complete(bot.tweet_reaction(tweepy_api.get_status(1423258208379015172)))
+    bot.run()
 
