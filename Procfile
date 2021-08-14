@@ -1,2 +1,2 @@
-web: python tweet_screenshot.py
-worker: python tweet_screenshot.py
+web: python main.py
+worker: python main.py

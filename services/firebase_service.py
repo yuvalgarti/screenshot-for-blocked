@@ -1,6 +1,6 @@
 import pyrebase
 
-from service import Service
+from services.service import Service
 
 
 class FirebaseService(Service):
