@@ -2,7 +2,7 @@ import tweepy
 import os
 import logging
 
-from firebase_service import FirebaseService
+from services.firebase_service import FirebaseService
 from screenshot_for_blocked import ScreenshotForBlocked
 
 
