@@ -27,6 +27,7 @@ class ScreenshotForBlocked:
     def __init__(self, api, service):
         self.api = api
         self.service = service
+        self.logger = logging.getLogger('screenshot_for_the_blocked')
 
     def is_mention_inside_text(self, mention):
         extended_mention = self.api.get_status(mention.id, tweet_mode='extended')
@@ -36,7 +37,7 @@ class ScreenshotForBlocked:
         return blocked_screen in extended_mention.full_text[start_text:end_text]
 
     async def screenshot_tweet(self, tweet_id, path_to_image):
-        logging.debug('Started screenshotting')
+        self.logger.debug('Started screenshotting')
         tweet_url = os.environ['TWITTER_STATUS_URL'].format('AnyUser', tweet_id)
         result = self.api.get_oembed(tweet_url)
         tweet_html = result['html'].strip()
@@ -48,7 +49,7 @@ class ScreenshotForBlocked:
         tweet_frame = await page.querySelector('iframe')
         await tweet_frame.screenshot({'path': path_to_image})
         await browser.close()
-        logging.debug('Finished screenshotting')
+        self.logger.debug('Finished screenshotting')
 
     async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
@@ -61,17 +62,17 @@ class ScreenshotForBlocked:
         except tweepy.TweepError as twe:
             if twe.api_code == ApiError.RESTRICTED_COMMENTS.value:
                 text = 'נראה שאין לי הרשאות להגיב על הציוץ שביקשת, הנה הציוץ המבוקש'
-                logging.info('Cannot comment on mention. sending DM instead of replying')
+                self.logger.info('Cannot comment on mention. sending DM instead of replying')
                 self.api.send_direct_message(recipient_id=mention.user.id, text=text, attachment_type='media',
                                              attachment_media_id=media.media_id)
             else:
                 raise twe
         else:
-            logging.info('Reply is successful. path_to_file: {}, status: {}, in_reply_to_status_id: {}'
+            self.logger.info('Reply is successful. path_to_file: {}, status: {}, in_reply_to_status_id: {}'
                          .format(path_to_file, status, mention.id))
         finally:
             if os.path.exists(path_to_file):
-                logging.debug('removing media file')
+                self.logger.debug('removing media file')
                 os.remove(path_to_file)
 
     async def reply_blocked_tweet(self, mention, tweet_id):
@@ -80,14 +81,14 @@ class ScreenshotForBlocked:
             blocked_tweet = self.api.get_status(tweet_id)
             links = get_all_links_from_tweet(blocked_tweet)
         except tweepy.TweepError as twe:
-            logging.warning('Cannot get links - the user blocked me or they are locked')
+            self.logger.warning('Cannot get links - the user blocked me or they are locked')
         await self.reply_to_mention_with_screenshot(mention, tweet_id, links)
 
     async def blocked_retweet(self, mention):
         if mention.in_reply_to_status_id:
             viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
-            if viewed_tweet.is_quote_status:
-                logging.info('Found a retweet')
+            if viewed_tweet.is_quote_status and hasattr(viewed_tweet, 'quoted_status_id'):
+                self.logger.info('Found a retweet')
                 await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status_id)
                 return True
         return False
@@ -96,7 +97,7 @@ class ScreenshotForBlocked:
         if mention.in_reply_to_status_id:
             viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
             if viewed_tweet.in_reply_to_status_id:
-                logging.info('Found a comment')
+                self.logger.info('Found a comment')
                 await self.reply_blocked_tweet(mention, viewed_tweet.in_reply_to_status_id)
                 return True
         return False
@@ -108,7 +109,7 @@ class ScreenshotForBlocked:
                 comment = await self.blocked_comment(mention)
                 if not comment:
                     msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
-                    logging.info(msg)
+                    self.logger.info(msg)
                     self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
                                            in_reply_to_status_id=mention.id)
         except tweepy.TweepError as err:
@@ -123,32 +124,35 @@ class ScreenshotForBlocked:
                 if msg != str(err):
                     self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
                                            in_reply_to_status_id=mention.id)
-                logging.warning(msg)
+                self.logger.warning(msg)
             except tweepy.TweepError as another_err:
-                logging.warning('Unexpected error occurred. error: {}'.format(str(another_err)))
+                self.logger.warning('Unexpected error occurred. error: {}'.format(str(another_err)))
 
     def run(self):
         pyppeteer.chromium_downloader.download_chromium()
         last_mention = int(self.service.get_last_mention())
         max_mention_id = last_mention
         mentions_per_request = os.environ['MENTIONS_PER_REQUEST']
-        logging.info('mentions per request: {}'.format(mentions_per_request))
+        self.logger.info('mentions per request: {}'.format(mentions_per_request))
         while True:
             try:
-                logging.info('getting mentions since ' + str(max_mention_id))
+                self.logger.debug('getting mentions since ' + str(max_mention_id))
                 mentions = self.api.mentions_timeline(count=mentions_per_request, since_id=max_mention_id)
                 for mention in mentions:
                     last_mention = mention.id
                     if last_mention > max_mention_id:
                         max_mention_id = last_mention
-                    logging.info('Mention by: @' + mention.user.screen_name)
+                    self.logger.info('Mention by: @' + mention.user.screen_name)
                     if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention) and \
                             mention.in_reply_to_status_id is not None:
                         asyncio.get_event_loop().run_until_complete(self.tweet_reaction(mention))
                     else:
-                        logging.info('should not reply - mention by me or no mention inside text')
-                logging.info('writing ' + str(max_mention_id) + ' to DB')
-                self.service.set_last_mention(str(max_mention_id))
+                        self.logger.info('should not reply - mention by me or no mention inside text')
+                if mentions:
+                    self.logger.info('writing ' + str(max_mention_id) + ' to DB')
+                    self.service.set_last_mention(str(max_mention_id))
                 time.sleep(15)
             except tweepy.TweepError as exp:
-                logging.warning('Unexpected error occurred. error: {}'.format(str(exp)))
+                self.logger.warning('Unexpected error occurred. error: {}'.format(str(exp)))
+            except Exception as unknown_exp:
+                self.logger.error('ERROR! {}'.format(str(unknown_exp)))

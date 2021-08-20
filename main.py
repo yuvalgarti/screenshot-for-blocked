@@ -1,10 +1,12 @@
+import sys
+from logging.handlers import RotatingFileHandler
+
 import tweepy
 import os
 import logging
 
 from services.firebase_service import FirebaseService
 from screenshot_for_blocked import ScreenshotForBlocked
-
 
 if __name__ == '__main__':
     auth = tweepy.OAuthHandler(os.environ['SCREENSHOT_CONSUMER_KEY'], os.environ['SCREENSHOT_CONSUMER_VALUE'])
@@ -18,8 +20,20 @@ if __name__ == '__main__':
     }
 
     tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
-    logging.basicConfig(level=os.environ.get('SCREENSHOT_LOG_LEVEL', 'INFO').upper(),
-                        format='%(asctime)s - %(levelname)s - %(message)s')
+
+    logger = logging.getLogger('screenshot_for_the_blocked')
+    logger.setLevel(os.environ.get('SCREENSHOT_LOG_LEVEL', 'DEBUG'))
+    logFormat = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(logFormat)
+    logger.addHandler(console_handler)
+
+    GIGA_BYTE = 1048576
+    rotating_file_handler = RotatingFileHandler('screenshot_for_blocked.log', maxBytes=GIGA_BYTE)
+    rotating_file_handler.setLevel(os.environ.get('SCREENSHOT_FILE_LOG_LEVEL', 'INFO'))
+    rotating_file_handler.setFormatter(logFormat)
+    logger.addHandler(rotating_file_handler)
 
     bot = ScreenshotForBlocked(tweepy_api, FirebaseService(firebase_config))
     bot.run()
