@@ -71,7 +71,7 @@ class ScreenshotForBlocked:
                 raise twe
         else:
             self.logger.info('Reply is successful. path_to_file: {}, status: {}, in_reply_to_status_id: {}'
-                         .format(path_to_file, status, mention.id))
+                             .format(path_to_file, status, mention.id))
         finally:
             if os.path.exists(path_to_file):
                 self.logger.debug('removing media file')
@@ -132,9 +132,8 @@ class ScreenshotForBlocked:
 
     def handle_mentions(self, mentions):
         for mention in mentions:
-            last_mention = mention.id
-            if last_mention > self.max_mention_id:
-                self.max_mention_id = last_mention
+            if mention.id > self.max_mention_id:
+                self.max_mention_id = mention.id
             self.logger.info('Mention by: @' + mention.user.screen_name)
             if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention) and \
                     mention.in_reply_to_status_id is not None:
@@ -148,8 +147,7 @@ class ScreenshotForBlocked:
 
     def run(self):
         pyppeteer.chromium_downloader.download_chromium()
-        last_mention = int(self.service.get_last_mention())
-        self.max_mention_id = last_mention
+        self.max_mention_id = int(self.service.get_last_mention())
         mentions_per_request = os.environ['MENTIONS_PER_REQUEST']
         self.logger.info('mentions per request: {}'.format(mentions_per_request))
         while True:
