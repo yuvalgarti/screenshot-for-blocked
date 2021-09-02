@@ -154,6 +154,7 @@ class ScreenshotForBlocked:
             try:
                 self.logger.debug('getting mentions since ' + str(self.max_mention_id))
                 mentions = self.api.mentions_timeline(count=mentions_per_request, since_id=self.max_mention_id)
+                mentions.sort(key=lambda tweet: tweet.id)
                 self.handle_mentions(mentions)
                 if mentions:
                     self.logger.info('writing ' + str(self.max_mention_id) + ' to DB')
