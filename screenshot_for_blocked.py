@@ -28,6 +28,7 @@ class ScreenshotForBlocked:
         self.api = api
         self.service = service
         self.logger = logging.getLogger('screenshot_for_the_blocked')
+        self.timeout = int(os.environ['SCREENSHOT_TIMEOUT'])
 
     def is_mention_inside_text(self, mention):
         extended_mention = self.api.get_status(mention.id, tweet_mode='extended')
@@ -128,6 +129,23 @@ class ScreenshotForBlocked:
             except tweepy.TweepError as another_err:
                 self.logger.warning('Unexpected error occurred. error: {}'.format(str(another_err)))
 
+    def handle_mentions(self, mentions, max_mention_id):
+        for mention in mentions:
+            last_mention = mention.id
+            if last_mention > max_mention_id:
+                max_mention_id = last_mention
+            self.logger.info('Mention by: @' + mention.user.screen_name)
+            if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention) and \
+                    mention.in_reply_to_status_id is not None:
+                try:
+                    asyncio.get_event_loop().run_until_complete(
+                        asyncio.wait_for(self.tweet_reaction(mention), self.timeout))
+                except asyncio.exceptions.TimeoutError:
+                    self.logger.warning('Timeout occurred! mention id: ' + str(mention.id))
+            else:
+                self.logger.info('should not reply - mention by me or no mention inside text')
+        return max_mention_id
+
     def run(self):
         pyppeteer.chromium_downloader.download_chromium()
         last_mention = int(self.service.get_last_mention())
@@ -138,21 +156,12 @@ class ScreenshotForBlocked:
             try:
                 self.logger.debug('getting mentions since ' + str(max_mention_id))
                 mentions = self.api.mentions_timeline(count=mentions_per_request, since_id=max_mention_id)
-                for mention in mentions:
-                    last_mention = mention.id
-                    if last_mention > max_mention_id:
-                        max_mention_id = last_mention
-                    self.logger.info('Mention by: @' + mention.user.screen_name)
-                    if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention) and \
-                            mention.in_reply_to_status_id is not None:
-                        asyncio.get_event_loop().run_until_complete(self.tweet_reaction(mention))
-                    else:
-                        self.logger.info('should not reply - mention by me or no mention inside text')
+                max_mention_id = self.handle_mentions(mentions, max_mention_id)
                 if mentions:
                     self.logger.info('writing ' + str(max_mention_id) + ' to DB')
                     self.service.set_last_mention(str(max_mention_id))
                 time.sleep(15)
             except tweepy.TweepError as exp:
-                self.logger.warning('Unexpected error occurred. error: {}'.format(str(exp)))
+                self.logger.warning('Unexpected Tweepy error occurred. error: {}'.format(str(exp)))
             except Exception as unknown_exp:
                 self.logger.error('ERROR! {}'.format(str(unknown_exp)))
