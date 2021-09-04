@@ -54,22 +54,9 @@ class ScreenshotForBlocked:
         await browser.close()
         self.logger.debug('Finished screenshotting')
 
-    async def screenshot_tweet_with_retries(self, tweet_to_screenshot_id, path_to_file, retries_count=3):
-        for i in range(retries_count):
-            try:
-                await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
-                break
-            except Exception as exp:
-                if i < retries_count - 1:
-                    self.logger.warning('Failed to screenshot. trying again... retry count: {}/{}'.
-                                        format(i, retries_count))
-                else:
-                    self.logger.error('Failed to screenshot. will not try again')
-                    raise exp
-
     async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
-        await self.screenshot_tweet_with_retries(tweet_to_screenshot_id, path_to_file)
+        await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
         media = self.api.media_upload(path_to_file)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
         try:
@@ -144,18 +131,31 @@ class ScreenshotForBlocked:
             except tweepy.TweepError as another_err:
                 self.logger.warning('Unexpected error occurred. error: {}'.format(str(another_err)))
 
-    def handle_mentions(self, mentions):
+    def handle_mention_with_retries(self, mention, retries_count=3):
+        for i in range(retries_count):
+            try:
+                asyncio.get_event_loop().run_until_complete(
+                    asyncio.wait_for(self.tweet_reaction(mention), self.timeout))
+            except asyncio.exceptions.TimeoutError:
+                self.logger.warning('Timeout occurred! mention id: ' + str(mention.id))
+            except tweepy.TweepError as tweepy_exp:
+                raise tweepy_exp
+            except Exception as exp:
+                if i < retries_count - 1:
+                    self.logger.warning('Failed to tweet reaction due to unknown error.'
+                                        ' trying again... retry count: {}/{}'.format(i, retries_count))
+                else:
+                    self.logger.error('Failed to screenshot. will not try again')
+                    raise exp
+
+    def handle_mentions(self, mentions, retries_count=3):
         for mention in mentions:
             if mention.id > self.max_mention_id:
                 self.max_mention_id = mention.id
             self.logger.info('Mention by: @' + mention.user.screen_name)
             if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention) and \
                     mention.in_reply_to_status_id is not None:
-                try:
-                    asyncio.get_event_loop().run_until_complete(
-                        asyncio.wait_for(self.tweet_reaction(mention), self.timeout))
-                except asyncio.exceptions.TimeoutError:
-                    self.logger.warning('Timeout occurred! mention id: ' + str(mention.id))
+                self.handle_mention_with_retries(mention)
             else:
                 self.logger.info('should not reply - mention by me or no mention inside text')
 
