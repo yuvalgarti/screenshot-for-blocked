@@ -1,10 +1,11 @@
 import asyncio
-from enum import Enum
-import pyppeteer
-import time
 import logging
-import tweepy
 import os
+import time
+from enum import Enum
+
+import pyppeteer
+import tweepy
 
 
 class ApiError(Enum):
@@ -53,9 +54,21 @@ class ScreenshotForBlocked:
         await browser.close()
         self.logger.debug('Finished screenshotting')
 
+    async def screenshot_tweet_with_retries(self, tweet_to_screenshot_id, path_to_file, retries_count=3):
+        for i in range(retries_count):
+            try:
+                await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
+                break
+            except Exception as exp:
+                if i < retries_count - 1:
+                    self.logger.warning('Failed to screenshot. trying again...')
+                else:
+                    self.logger.error('Failed to screenshot. will not try again')
+                    raise exp
+
     async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
-        await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
+        await self.screenshot_tweet_with_retries(tweet_to_screenshot_id, path_to_file)
         media = self.api.media_upload(path_to_file)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
         try:
