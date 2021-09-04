@@ -1,10 +1,11 @@
 import asyncio
-from enum import Enum
-import pyppeteer
-import time
 import logging
-import tweepy
 import os
+import time
+from enum import Enum
+
+import pyppeteer
+import tweepy
 
 
 class ApiError(Enum):
@@ -163,4 +164,4 @@ class ScreenshotForBlocked:
             except tweepy.TweepError as exp:
                 self.logger.warning('Unexpected Tweepy error occurred. error: {}'.format(str(exp)))
             except Exception as unknown_exp:
-                self.logger.error('ERROR! {}'.format(str(unknown_exp)))
+                self.logger.exception('ERROR! {}'.format(str(unknown_exp)))
