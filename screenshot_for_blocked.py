@@ -136,6 +136,7 @@ class ScreenshotForBlocked:
             try:
                 asyncio.get_event_loop().run_until_complete(
                     asyncio.wait_for(self.tweet_reaction(mention), self.timeout))
+                break
             except asyncio.exceptions.TimeoutError:
                 self.logger.warning('Timeout occurred! mention id: ' + str(mention.id))
             except tweepy.TweepError as tweepy_exp:
