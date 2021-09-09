@@ -149,7 +149,7 @@ class ScreenshotForBlocked:
                     self.logger.error('Failed to screenshot. will not try again')
                     raise exp
 
-    def handle_mentions(self, mentions, retries_count=3):
+    def handle_mentions(self, mentions):
         for mention in mentions:
             if mention.id > self.max_mention_id:
                 self.max_mention_id = mention.id
