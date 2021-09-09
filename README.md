@@ -14,7 +14,7 @@ Specail additions:
 
 When the bot won't be able to do its job?
 1. User A blocked the bot.
-2. User A or User B are locked users.
+2. User A or User B are private users.
 
 
 # Related Projects
