@@ -39,10 +39,10 @@ class ScreenshotForBlocked:
         end_text = int(extended_mention.display_text_range[1])
         return blocked_screen in extended_mention.full_text[start_text:end_text]
 
-    async def screenshot_tweet(self, tweet_id, path_to_image):
+    async def screenshot_tweet(self, tweet_id, path_to_image, is_dark_mode=False):
         self.logger.debug('Started screenshotting')
         tweet_url = os.environ['TWITTER_STATUS_URL'].format('AnyUser', tweet_id)
-        result = self.api.get_oembed(tweet_url)
+        result = self.api.get_oembed(tweet_url, theme=('dark' if is_dark_mode else ''))
         tweet_html = result['html'].strip()
         browser = await pyppeteer.launch(args=['--no-sandbox'])
         page = await browser.newPage()
@@ -56,7 +56,9 @@ class ScreenshotForBlocked:
 
     async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
-        await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file)
+
+        is_dark_mode = any(dark in mention.text.lower() for dark in ['dark', 'דארק'])
+        await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file, is_dark_mode)
         media = self.api.media_upload(path_to_file)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
         try:
