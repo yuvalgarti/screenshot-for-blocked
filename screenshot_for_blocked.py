@@ -56,7 +56,6 @@ class ScreenshotForBlocked:
 
     async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
-
         is_dark_mode = any(dark in mention.text.lower() for dark in ['dark', 'דארק'])
         await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file, is_dark_mode)
         media = self.api.media_upload(path_to_file)
