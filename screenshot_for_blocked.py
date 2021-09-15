@@ -72,8 +72,9 @@ class ScreenshotForBlocked:
             else:
                 raise twe
         else:
-            self.logger.info('Reply is successful. path_to_file: {}, status: {}, in_reply_to_status_id: {}'
-                             .format(path_to_file, status, mention.id))
+            self.logger.info('Reply is successful. path_to_file: {}, status: {}, in_reply_to_status_id: {}, '
+                             'is_dark_mode: {}'
+                             .format(path_to_file, status, mention.id, is_dark_mode))
         finally:
             if os.path.exists(path_to_file):
                 self.logger.debug('removing media file')
