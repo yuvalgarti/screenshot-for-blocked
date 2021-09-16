@@ -30,6 +30,7 @@ class ScreenshotForBlocked:
         self.service = service
         self.logger = logging.getLogger('screenshot_for_the_blocked')
         self.timeout = int(os.environ['SCREENSHOT_TIMEOUT'])
+        self.retry_count = int(os.environ['RETRY_COUNT'])
         self.max_mention_id = 0
 
     def is_mention_inside_text(self, mention):
@@ -133,6 +134,24 @@ class ScreenshotForBlocked:
             except tweepy.TweepError as another_err:
                 self.logger.warning('Unexpected error occurred. error: {}'.format(str(another_err)))
 
+    def handle_mention_with_retries(self, mention, retries_count=3):
+        for i in range(retries_count):
+            try:
+                asyncio.get_event_loop().run_until_complete(
+                    asyncio.wait_for(self.tweet_reaction(mention), self.timeout))
+                break
+            except asyncio.exceptions.TimeoutError:
+                self.logger.warning('Timeout occurred! mention id: ' + str(mention.id))
+            except tweepy.TweepError as tweepy_exp:
+                raise tweepy_exp
+            except Exception as exp:
+                if i < retries_count - 1:
+                    self.logger.warning('Failed to tweet reaction due to unknown error.'
+                                        ' trying again... retry count: {}/{}'.format(i + 1, retries_count))
+                else:
+                    self.logger.error('Failed to screenshot. will not try again')
+                    raise exp
+
     def handle_mentions(self, mentions):
         for mention in mentions:
             if mention.id > self.max_mention_id:
@@ -140,11 +159,7 @@ class ScreenshotForBlocked:
             self.logger.info('Mention by: @' + mention.user.screen_name)
             if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention) and \
                     mention.in_reply_to_status_id is not None:
-                try:
-                    asyncio.get_event_loop().run_until_complete(
-                        asyncio.wait_for(self.tweet_reaction(mention), self.timeout))
-                except asyncio.exceptions.TimeoutError:
-                    self.logger.warning('Timeout occurred! mention id: ' + str(mention.id))
+                self.handle_mention_with_retries(mention, self.retry_count)
             else:
                 self.logger.info('should not reply - mention by me or no mention inside text')
 
