@@ -30,6 +30,7 @@ class ScreenshotForBlocked:
         self.service = service
         self.logger = logging.getLogger('screenshot_for_the_blocked')
         self.timeout = int(os.environ['SCREENSHOT_TIMEOUT'])
+        self.retry_count = int(os.environ['RETRY_COUNT'])
         self.max_mention_id = 0
 
     def is_mention_inside_text(self, mention):
@@ -158,7 +159,7 @@ class ScreenshotForBlocked:
             self.logger.info('Mention by: @' + mention.user.screen_name)
             if mention.user.id != self.api.me().id and self.is_mention_inside_text(mention) and \
                     mention.in_reply_to_status_id is not None:
-                self.handle_mention_with_retries(mention)
+                self.handle_mention_with_retries(mention, self.retry_count)
             else:
                 self.logger.info('should not reply - mention by me or no mention inside text')
 
