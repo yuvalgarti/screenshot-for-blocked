@@ -146,7 +146,7 @@ class ScreenshotForBlocked:
             except Exception as exp:
                 if i < retries_count - 1:
                     self.logger.warning('Failed to tweet reaction due to unknown error.'
-                                        ' trying again... retry count: {}/{}'.format(i, retries_count))
+                                        ' trying again... retry count: {}/{}'.format(i + 1, retries_count))
                 else:
                     self.logger.error('Failed to screenshot. will not try again')
                     raise exp
