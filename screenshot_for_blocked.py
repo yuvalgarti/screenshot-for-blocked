@@ -90,34 +90,30 @@ class ScreenshotForBlocked:
             self.logger.warning('Cannot get links - the user blocked me or they are locked')
         await self.reply_to_mention_with_screenshot(mention, tweet_id, links)
 
-    async def blocked_retweet(self, mention):
-        if mention.in_reply_to_status_id:
-            viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
-            if viewed_tweet.is_quote_status and hasattr(viewed_tweet, 'quoted_status_id'):
-                self.logger.info('Found a retweet')
-                await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status_id)
-                return True
-        return False
+    def no_retweet_or_comment(self, mention, viewed_tweet):
+        msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
+        if viewed_tweet.user.id == self.api.me().id:
+            msg = 'לגרום לי לעבוד כשהציוץ הוא שלי? אין בושה, הא?'
+        self.logger.info(msg)
+        self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
+                               in_reply_to_status_id=mention.id)
 
-    async def blocked_comment(self, mention):
-        if mention.in_reply_to_status_id:
-            viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
-            if viewed_tweet.in_reply_to_status_id:
-                self.logger.info('Found a comment')
-                await self.reply_blocked_tweet(mention, viewed_tweet.in_reply_to_status_id)
-                return True
+    async def blocked_retweet_or_comment(self, mention):
+        viewed_tweet = self.api.get_status(mention.in_reply_to_status_id)
+        if viewed_tweet.is_quote_status and hasattr(viewed_tweet, 'quoted_status_id'):
+            self.logger.info('Found a retweet')
+            await self.reply_blocked_tweet(mention, viewed_tweet.quoted_status_id)
+            return True
+        elif viewed_tweet.in_reply_to_status_id:
+            self.logger.info('Found a comment')
+            await self.reply_blocked_tweet(mention, viewed_tweet.in_reply_to_status_id)
+            return True
+        self.no_retweet_or_comment(mention, viewed_tweet)
         return False
 
     async def tweet_reaction(self, mention):
         try:
-            retweet = await self.blocked_retweet(mention)
-            if not retweet:
-                comment = await self.blocked_comment(mention)
-                if not comment:
-                    msg = 'לצערי אין תגובה ואין ריטוויט (או שהמשתמש נעול, או שהציוץ נמחק)'
-                    self.logger.info(msg)
-                    self.api.update_status(status='@' + mention.user.screen_name + ' ' + msg,
-                                           in_reply_to_status_id=mention.id)
+            await self.blocked_retweet_or_comment(mention)
         except tweepy.TweepError as err:
             try:
                 msg = str(err)
