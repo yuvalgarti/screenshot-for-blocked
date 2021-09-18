@@ -121,3 +121,6 @@ class ScreenshotForBlocked(MentionAction):
 
     async def run(self, mention):
         await self.tweet_reaction(mention)
+
+    def setup(self):
+        pyppeteer.chromium_downloader.download_chromium()

@@ -3,7 +3,6 @@ import logging
 import os
 import time
 
-import pyppeteer
 import tweepy
 
 
@@ -51,7 +50,7 @@ class MentionHandler:
                 self.logger.info('should not reply - mention by me or no mention inside text')
 
     def run(self):
-        pyppeteer.chromium_downloader.download_chromium()
+        self.mention_action.setup()
         max_mention_id = int(self.last_mention_service.get_last_mention())
         mentions_per_request = os.environ['MENTIONS_PER_REQUEST']
         self.logger.info('mentions per request: {}'.format(mentions_per_request))
