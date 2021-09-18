@@ -52,7 +52,7 @@ class MentionHandler:
     def run(self):
         self.mention_action.setup()
         max_mention_id = int(self.last_mention_service.get_last_mention())
-        mentions_per_request = os.environ['MENTIONS_PER_REQUEST']
+        mentions_per_request = os.environ.get('MENTIONS_PER_REQUEST', 5)
         self.logger.info('mentions per request: {}'.format(mentions_per_request))
         while True:
             try:

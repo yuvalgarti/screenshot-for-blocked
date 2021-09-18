@@ -28,10 +28,12 @@ class ScreenshotForBlocked(MentionAction):
     def __init__(self, api):
         self.api = api
         self.logger = logging.getLogger(__name__)
+        self.twitter_status_url = os.environ.get('TWITTER_STATUS_URL', 'https://twitter.com/{}/status/{}')
+        self.dark_mode_options = os.environ.get('DARK_MODE_OPTIONS', 'dark').split(',')
 
     async def screenshot_tweet(self, tweet_id, path_to_image, is_dark_mode=False):
         self.logger.debug('Started screenshotting')
-        tweet_url = os.environ['TWITTER_STATUS_URL'].format('AnyUser', tweet_id)
+        tweet_url = self.twitter_status_url.format('AnyUser', tweet_id)
         result = self.api.get_oembed(tweet_url, theme=('dark' if is_dark_mode else ''))
         tweet_html = result['html'].strip()
         browser = await pyppeteer.launch(args=['--no-sandbox'])
@@ -46,7 +48,7 @@ class ScreenshotForBlocked(MentionAction):
 
     async def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
-        is_dark_mode = any(dark in mention.text.lower() for dark in os.environ['DARK_MODE_OPTIONS'].split(','))
+        is_dark_mode = any(dark in mention.text.lower() for dark in self.dark_mode_options)
         await self.screenshot_tweet(tweet_to_screenshot_id, path_to_file, is_dark_mode)
         media = self.api.media_upload(path_to_file)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
