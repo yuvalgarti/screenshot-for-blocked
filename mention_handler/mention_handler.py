@@ -7,13 +7,14 @@ import tweepy
 
 
 class MentionHandler:
-    def __init__(self, api, mention_action, last_mention_service, timeout=30, retry_count=3):
+    def __init__(self, api, mention_action, last_mention_service, is_production, timeout=30, retry_count=3):
         self.api = api
         self.mention_action = mention_action
         self.last_mention_service = last_mention_service
         self.logger = logging.getLogger(__name__)
         self.timeout = timeout
         self.retry_count = retry_count
+        self.is_production_mode = is_production
 
     def is_mention_inside_text(self, mention):
         extended_mention = self.api.get_status(mention.id, tweet_mode='extended')
@@ -63,7 +64,8 @@ class MentionHandler:
                 if mentions:
                     max_mention_id = mentions[-1].id
                     self.logger.info('writing ' + str(max_mention_id) + ' to DB')
-                    self.last_mention_service.set_last_mention(str(max_mention_id))
+                    if self.is_production_mode:
+                        self.last_mention_service.set_last_mention(str(max_mention_id))
                 time.sleep(15)
             except tweepy.TweepError as exp:
                 self.logger.warning('Unexpected Tweepy error occurred. error: {}'.format(str(exp)))

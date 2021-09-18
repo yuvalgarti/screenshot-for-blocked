@@ -18,11 +18,14 @@ if __name__ == '__main__':
     }
 
     tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
+    is_production = os.environ.get('IS_PRODUCTION', True) == 'True'
+    print('is_production: ' + str(is_production))
 
-    bot = ScreenshotForBlocked(tweepy_api)
+    bot = ScreenshotForBlocked(tweepy_api, is_production)
     mention_handler = MentionHandler(tweepy_api,
                                      bot,
                                      FirebaseService(firebase_config),
-                                     os.environ.get('SCREENSHOT_TIMEOUT', 30),
-                                     os.environ.get('RETRY_COUNT', 3))
+                                     int(os.environ.get('SCREENSHOT_TIMEOUT', 30)),
+                                     int(os.environ.get('RETRY_COUNT', 3)),
+                                     is_production)
     mention_handler.run()
