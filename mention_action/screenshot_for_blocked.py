@@ -1,19 +1,11 @@
 import logging
 import os
-from enum import Enum
 
 import pyppeteer
 import tweepy
 
+from api_error import ApiError
 from mention_action.mention_action import MentionAction
-
-
-class ApiError(Enum):
-    URL_DOESNT_EXIST = 34
-    BLOCKED_TWEET = 136
-    NO_TWEET_WITH_ID = 144
-    RESTRICTED_TWEET = 179
-    RESTRICTED_COMMENTS = 433
 
 
 def get_all_links_from_tweet(tweet):
