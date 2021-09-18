@@ -20,7 +20,7 @@ if __name__ == '__main__':
     }
 
     tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
-    is_production = os.environ.get('IS_PRODUCTION', True) == 'True'
+    is_production = os.environ.get('IS_PRODUCTION', 'True') == 'True'
     print('is_production: ' + str(is_production))
 
     log_modules = ['mention_action', 'mention_handler']
