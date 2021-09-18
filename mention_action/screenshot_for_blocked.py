@@ -66,7 +66,7 @@ class ScreenshotForBlocked(MentionAction):
                     self.logger.debug('removing media file')
                     os.remove(path_to_file)
         else:
-            self.logger.info('Reply is successful. path_to_file: {}, status: {}, in_reply_to_status_id: {}, '
+            self.logger.info('TESTING MODE - path_to_file: {}, status: {}, in_reply_to_status_id: {}, '
                              'is_dark_mode: {}'
                              .format(path_to_file, status, mention.id, is_dark_mode))
 

@@ -1,4 +1,6 @@
+import logging
 import os
+import sys
 
 import tweepy
 
@@ -21,11 +23,21 @@ if __name__ == '__main__':
     is_production = os.environ.get('IS_PRODUCTION', True) == 'True'
     print('is_production: ' + str(is_production))
 
+    log_modules = ['mention_action', 'mention_handler']
+    logFormat = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(logFormat)
+
+    for module_name in log_modules:
+        logger = logging.getLogger(module_name)
+        logger.setLevel('DEBUG')
+        logger.addHandler(console_handler)
+
     bot = ScreenshotForBlocked(tweepy_api, is_production)
     mention_handler = MentionHandler(tweepy_api,
                                      bot,
                                      FirebaseService(firebase_config),
+                                     is_production,
                                      int(os.environ.get('SCREENSHOT_TIMEOUT', 30)),
-                                     int(os.environ.get('RETRY_COUNT', 3)),
-                                     is_production)
+                                     int(os.environ.get('RETRY_COUNT', 3)))
     mention_handler.run()
