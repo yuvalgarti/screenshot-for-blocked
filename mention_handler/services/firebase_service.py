@@ -1,9 +1,9 @@
 import pyrebase
 
-from services.service import Service
+from mention_handler.services.last_mention_service import LastMentionService
 
 
-class FirebaseService(Service):
+class FirebaseService(LastMentionService):
     def __init__(self, firebase_config):
         self.db = pyrebase.initialize_app(firebase_config).database()
 

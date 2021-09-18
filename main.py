@@ -5,8 +5,9 @@ from logging.handlers import RotatingFileHandler
 
 import tweepy
 
-from screenshot_for_blocked import ScreenshotForBlocked
-from services.firebase_service import FirebaseService
+from mention_action.screenshot_for_blocked import ScreenshotForBlocked
+from mention_handler.mention_handler import MentionHandler
+from mention_handler.services.firebase_service import FirebaseService
 
 if __name__ == '__main__':
     auth = tweepy.OAuthHandler(os.environ['SCREENSHOT_CONSUMER_KEY'], os.environ['SCREENSHOT_CONSUMER_VALUE'])
@@ -35,5 +36,10 @@ if __name__ == '__main__':
     rotating_file_handler.setFormatter(logFormat)
     logger.addHandler(rotating_file_handler)
 
-    bot = ScreenshotForBlocked(tweepy_api, FirebaseService(firebase_config))
-    bot.run()
+    bot = ScreenshotForBlocked(tweepy_api)
+    mention_handler = MentionHandler(tweepy_api,
+                                     bot,
+                                     FirebaseService(firebase_config),
+                                     os.environ.get('SCREENSHOT_TIMEOUT', 30),
+                                     os.environ.get('RETRY_COUNT', 3))
+    mention_handler.run()

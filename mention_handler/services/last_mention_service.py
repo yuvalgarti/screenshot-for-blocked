@@ -1,4 +1,4 @@
-class Service:
+class LastMentionService:
     def get_last_mention(self):
         pass
 
