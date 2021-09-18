@@ -1,7 +1,4 @@
-import logging
 import os
-import sys
-from logging.handlers import RotatingFileHandler
 
 import tweepy
 
@@ -21,20 +18,6 @@ if __name__ == '__main__':
     }
 
     tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
-
-    logger = logging.getLogger('screenshot_for_the_blocked')
-    logger.setLevel(os.environ.get('SCREENSHOT_LOG_LEVEL', 'DEBUG'))
-    logFormat = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
-    console_handler = logging.StreamHandler(sys.stdout)
-    console_handler.setFormatter(logFormat)
-    logger.addHandler(console_handler)
-
-    GIGA_BYTE = 1048576
-    rotating_file_handler = RotatingFileHandler('screenshot_for_blocked.log', maxBytes=GIGA_BYTE, encoding='utf-8')
-    rotating_file_handler.setLevel(os.environ.get('SCREENSHOT_FILE_LOG_LEVEL', 'INFO'))
-    rotating_file_handler.setFormatter(logFormat)
-    logger.addHandler(rotating_file_handler)
 
     bot = ScreenshotForBlocked(tweepy_api)
     mention_handler = MentionHandler(tweepy_api,
