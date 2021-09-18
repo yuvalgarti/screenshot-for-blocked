@@ -1,12 +1,12 @@
 import logging
 import os
 import sys
-from logging.handlers import RotatingFileHandler
 
 import tweepy
 
-from screenshot_for_blocked import ScreenshotForBlocked
-from services.firebase_service import FirebaseService
+from mention_action.screenshot_for_blocked import ScreenshotForBlocked
+from mention_handler.mention_handler import MentionHandler
+from mention_handler.services.firebase_service import FirebaseService
 
 if __name__ == '__main__':
     auth = tweepy.OAuthHandler(os.environ['SCREENSHOT_CONSUMER_KEY'], os.environ['SCREENSHOT_CONSUMER_VALUE'])
@@ -20,20 +20,24 @@ if __name__ == '__main__':
     }
 
     tweepy_api = tweepy.API(auth, wait_on_rate_limit=True)
+    is_production = os.environ.get('IS_PRODUCTION', 'True') == 'True'
+    print('is_production: ' + str(is_production))
 
-    logger = logging.getLogger('screenshot_for_the_blocked')
-    logger.setLevel(os.environ.get('SCREENSHOT_LOG_LEVEL', 'DEBUG'))
+    log_modules = ['mention_action', 'mention_handler']
     logFormat = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
-
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(logFormat)
-    logger.addHandler(console_handler)
 
-    GIGA_BYTE = 1048576
-    rotating_file_handler = RotatingFileHandler('screenshot_for_blocked.log', maxBytes=GIGA_BYTE, encoding='utf-8')
-    rotating_file_handler.setLevel(os.environ.get('SCREENSHOT_FILE_LOG_LEVEL', 'INFO'))
-    rotating_file_handler.setFormatter(logFormat)
-    logger.addHandler(rotating_file_handler)
+    for module_name in log_modules:
+        logger = logging.getLogger(module_name)
+        logger.setLevel('DEBUG')
+        logger.addHandler(console_handler)
 
-    bot = ScreenshotForBlocked(tweepy_api, FirebaseService(firebase_config))
-    bot.run()
+    bot = ScreenshotForBlocked(tweepy_api, is_production)
+    mention_handler = MentionHandler(tweepy_api,
+                                     bot,
+                                     FirebaseService(firebase_config),
+                                     is_production,
+                                     int(os.environ.get('SCREENSHOT_TIMEOUT', 30)),
+                                     int(os.environ.get('RETRY_COUNT', 3)))
+    mention_handler.run()
