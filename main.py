@@ -3,10 +3,10 @@ import os
 import sys
 
 import tweepy
+from mention_bot import MentionHandler
 
-from mention_action.screenshot_for_blocked import ScreenshotForBlocked
-from mention_handler.mention_handler import MentionHandler
-from mention_handler.services.firebase_service import FirebaseService
+from screenshot_for_blocked.firebase_service import FirebaseService
+from screenshot_for_blocked.screenshot_for_blocked import ScreenshotForBlocked
 
 if __name__ == '__main__':
     auth = tweepy.OAuthHandler(os.environ['SCREENSHOT_CONSUMER_KEY'], os.environ['SCREENSHOT_CONSUMER_VALUE'])
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     is_production = os.environ.get('IS_PRODUCTION', 'True') == 'True'
     print('is_production: ' + str(is_production))
 
-    log_modules = ['mention_action', 'mention_handler']
+    log_modules = ['screenshot_for_blocked', 'mention_bot']
     logFormat = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
     console_handler = logging.StreamHandler(sys.stdout)
     console_handler.setFormatter(logFormat)
@@ -33,7 +33,7 @@ if __name__ == '__main__':
         logger.setLevel('DEBUG')
         logger.addHandler(console_handler)
 
-    bot = ScreenshotForBlocked(tweepy_api, is_production)
+    bot = ScreenshotForBlocked(tweepy_api, int(os.environ.get('SCREENSHOT_TIMEOUT', 30)), is_production)
     mention_handler = MentionHandler(tweepy_api,
                                      bot,
                                      FirebaseService(firebase_config),

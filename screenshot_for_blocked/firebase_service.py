@@ -1,6 +1,5 @@
 import pyrebase
-
-from mention_handler.services.last_mention_service import LastMentionService
+from mention_bot import LastMentionService
 
 
 class FirebaseService(LastMentionService):

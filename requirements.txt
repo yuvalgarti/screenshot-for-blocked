@@ -1,3 +1,4 @@
 pyppeteer==0.2.5
 tweepy==3.10.0
 pyrebase5==5.0.1
+mention-bot==2.0
