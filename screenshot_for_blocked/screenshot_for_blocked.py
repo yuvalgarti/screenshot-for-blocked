@@ -27,28 +27,32 @@ class ScreenshotForBlocked(MentionAction):
         self.is_production_mode = is_production
 
     async def screenshot_tweet(self, tweet_id, path_to_image, is_dark_mode=False):
-        self.logger.debug('Started screenshotting')
-        tweet_url = self.twitter_status_url.format('AnyUser', tweet_id)
-        result = self.api.get_oembed(tweet_url, theme=('dark' if is_dark_mode else ''))
-        tweet_html = result['html'].strip()
-        browser = await pyppeteer.launch(args=['--no-sandbox'])
-        page = await browser.newPage()
-        await page.setContent(tweet_html)
-        await page.waitForSelector('iframe', {'visible': True})
-        await page.waitFor(2 * 1000)
-        tweet_frame = await page.querySelector('iframe')
-        await tweet_frame.screenshot({'path': path_to_image})
-        await browser.close()
-        self.logger.debug('Finished screenshotting')
+        browser = None
+        try:
+            self.logger.debug('Started screenshotting')
+            tweet_url = self.twitter_status_url.format('AnyUser', tweet_id)
+            result = self.api.get_oembed(tweet_url, theme=('dark' if is_dark_mode else ''))
+            tweet_html = result['html'].strip()
+            browser = await pyppeteer.launch(args=['--no-sandbox'])
+            page = await browser.newPage()
+            await page.setContent(tweet_html)
+            await page.waitForSelector('iframe', {'visible': True})
+            await page.waitFor(2 * 1000)
+            tweet_frame = await page.querySelector('iframe')
+            await tweet_frame.screenshot({'path': path_to_image})
+            self.logger.debug('Finished screenshotting')
+        finally:
+            if browser is not None:
+                await browser.close()
 
     def reply_to_mention_with_screenshot(self, mention, tweet_to_screenshot_id, add_to_status=''):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
         is_dark_mode = any(dark in mention.text.lower() for dark in self.dark_mode_options)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
+        asyncio.get_event_loop().run_until_complete(
+            asyncio.wait_for(self.screenshot_tweet(tweet_to_screenshot_id, path_to_file, is_dark_mode),
+                             self.timeout))
         if self.is_production_mode:
-            asyncio.get_event_loop().run_until_complete(
-                asyncio.wait_for(self.screenshot_tweet(tweet_to_screenshot_id, path_to_file, is_dark_mode),
-                                 self.timeout))
             media = self.api.media_upload(path_to_file)
             try:
                 self.api.update_status(status=status, in_reply_to_status_id=mention.id,
