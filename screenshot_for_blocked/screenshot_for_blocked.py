@@ -49,7 +49,7 @@ class ScreenshotForBlocked(MentionAction):
         path_to_file = str(tweet_to_screenshot_id) + '.png'
         is_dark_mode = any(dark in mention.text.lower() for dark in self.dark_mode_options)
         status = '@' + mention.user.screen_name + ' ' + add_to_status
-        asyncio.get_event_loop().run_until_complete(
+        asyncio.run(
             asyncio.wait_for(self.screenshot_tweet(tweet_to_screenshot_id, path_to_file, is_dark_mode),
                              self.timeout))
         if self.is_production_mode:
